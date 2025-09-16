@@ -14,7 +14,236 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      expense_splits: {
+        Row: {
+          amount: number
+          expense_id: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          expense_id: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          expense_id?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expense_splits_expense_id_fkey"
+            columns: ["expense_id"]
+            isOneToOne: false
+            referencedRelation: "expenses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      expenses: {
+        Row: {
+          amount: number
+          created_at: string
+          created_by: string
+          currency: string
+          id: string
+          name: string
+          paid_by: string
+          trip_id: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          created_by: string
+          currency: string
+          id?: string
+          name: string
+          paid_by: string
+          trip_id: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          created_by?: string
+          currency?: string
+          id?: string
+          name?: string
+          paid_by?: string
+          trip_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expenses_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      "fello-fare-finder": {
+        Row: {
+          created_at: string
+          id: number
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+        }
+        Update: {
+          created_at?: string
+          id?: number
+        }
+        Relationships: []
+      }
+      payments: {
+        Row: {
+          amount: number
+          confirmed_at: string | null
+          created_at: string
+          currency: string
+          id: string
+          payee_id: string
+          payer_id: string
+          status: Database["public"]["Enums"]["payment_status"]
+          trip_id: string
+        }
+        Insert: {
+          amount: number
+          confirmed_at?: string | null
+          created_at?: string
+          currency: string
+          id?: string
+          payee_id: string
+          payer_id: string
+          status?: Database["public"]["Enums"]["payment_status"]
+          trip_id: string
+        }
+        Update: {
+          amount?: number
+          confirmed_at?: string | null
+          created_at?: string
+          currency?: string
+          id?: string
+          payee_id?: string
+          payer_id?: string
+          status?: Database["public"]["Enums"]["payment_status"]
+          trip_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          display_name: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          display_name: string
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          display_name?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      trip_members: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          id: string
+          requested_at: string
+          status: Database["public"]["Enums"]["member_status"]
+          trip_id: string
+          user_id: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          id?: string
+          requested_at?: string
+          status?: Database["public"]["Enums"]["member_status"]
+          trip_id: string
+          user_id: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          id?: string
+          requested_at?: string
+          status?: Database["public"]["Enums"]["member_status"]
+          trip_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trip_members_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      trips: {
+        Row: {
+          code: string
+          created_at: string
+          currency: string
+          currency_symbol: string
+          host_id: string
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          currency?: string
+          currency_symbol?: string
+          host_id: string
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          currency?: string
+          currency_symbol?: string
+          host_id?: string
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +252,8 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      member_status: "pending" | "approved" | "denied"
+      payment_status: "pending" | "confirmed" | "disputed"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +380,9 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      member_status: ["pending", "approved", "denied"],
+      payment_status: ["pending", "confirmed", "disputed"],
+    },
   },
 } as const
