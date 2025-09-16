@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,12 +6,23 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Users, Plus, LogIn, Plane } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/components/auth/AuthProvider";
 
 const Welcome = () => {
   const [showJoin, setShowJoin] = useState(false);
   const [joinCode, setJoinCode] = useState("");
+  const [userName, setUserName] = useState("");
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user, signInAnonymously, loading: authLoading } = useAuth();
+
+  // Auto sign in anonymously when component mounts
+  useEffect(() => {
+    if (!user && !authLoading) {
+      signInAnonymously().catch(console.error);
+    }
+  }, [user, authLoading, signInAnonymously]);
 
   const handleCreateTrip = () => {
     navigate("/create-trip");
@@ -26,8 +37,17 @@ const Welcome = () => {
       });
       return;
     }
-    // In a real app, we'd validate the code here
-    navigate(`/trip/${joinCode}`);
+    
+    if (!userName.trim()) {
+      toast({
+        title: "Name Required",
+        description: "Please enter your name to join the trip.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    navigate(`/trip/${joinCode}?userName=${encodeURIComponent(userName)}`);
   };
 
   return (
@@ -90,6 +110,16 @@ const Welcome = () => {
                 />
               </div>
               
+              <div className="space-y-2">
+                <Label htmlFor="userName">Your Name</Label>
+                <Input
+                  id="userName"
+                  placeholder="Enter your name"
+                  value={userName}
+                  onChange={(e) => setUserName(e.target.value)}
+                />
+              </div>
+              
               <div className="flex space-x-3">
                 <Button 
                   onClick={() => setShowJoin(false)}
@@ -101,8 +131,9 @@ const Welcome = () => {
                 <Button 
                   onClick={handleJoinTrip}
                   className="flex-1 bg-gradient-primary hover:bg-primary-hover"
+                  disabled={loading || authLoading}
                 >
-                  Join Trip
+                  {loading ? "Joining..." : "Join Trip"}
                 </Button>
               </div>
             </CardContent>
