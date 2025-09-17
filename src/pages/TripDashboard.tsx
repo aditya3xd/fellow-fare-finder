@@ -24,7 +24,7 @@ const TripDashboard = () => {
   const [memberSummary, setMemberSummary] = useState<MemberSummary>({});
   const [loading, setLoading] = useState(true);
   const { getTripByCode, joinTrip } = useTrips();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   
   const userName = searchParams.get('userName');
 
@@ -62,10 +62,15 @@ const TripDashboard = () => {
       }
     };
 
-    if (user) {
-      loadTripData();
+    if (!authLoading) {
+      if (user) {
+        loadTripData();
+      } else {
+        // If not authenticated, redirect to auth page
+        navigate('/auth');
+      }
     }
-  }, [tripCode, userName, user, getTripByCode, joinTrip, toast, navigate]);
+  }, [tripCode, userName, user, authLoading, getTripByCode, joinTrip, toast, navigate]);
 
   const calculateMemberSummary = (expenses: ExpenseData[], members: MemberData[]) => {
     const summary: MemberSummary = {};
@@ -156,7 +161,7 @@ const TripDashboard = () => {
     }
   };
 
-  if (loading) {
+  if (loading || authLoading) {
     return (
       <div className="min-h-screen bg-gradient-surface flex items-center justify-center">
         <div className="text-center">
