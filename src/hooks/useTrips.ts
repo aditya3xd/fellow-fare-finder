@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { useToast } from '@/hooks/use-toast';
@@ -13,6 +13,7 @@ export interface TripData {
   created_at: string;
   expenses?: ExpenseData[];
   members?: MemberData[];
+  trip_members?: any; // Add this to handle the raw data from the function
 }
 
 export interface ExpenseData {
@@ -96,44 +97,32 @@ export function useTrips() {
     }
   };
 
-  // This is the function you need to replace (lines 94-126)
-const getTripByCode = async (code: string) => {
-  try {
-    const { data: trip, error } = await supabase
-      .from('trips')
-      .select(`
-        *,
-        expenses(*, expense_splits(*)),
-        trip_members(
-          id, user_id, trip_id, status, requested_at, approved_at
-        )
-      `)
-      .eq('code', code)
-      .single();
+  // --- CORRECTED FUNCTION START ---
+  const getTripByCode = async (code: string) => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.rpc('get_trip_details', {
+        trip_code_input: code
+      });
 
-    if (error) throw error;
-
-    // Fetch member profiles separately
-    if (trip?.trip_members) {
-      const memberIds = trip.trip_members.map((m: any) => m.user_id);
-      const { data: profiles } = await supabase
-        .from('profiles')
-        .select('user_id, display_name, avatar_url')
-        .in('user_id', memberIds);
-
-      // Merge profiles with members
-      trip.trip_members = trip.trip_members.map((member: any) => ({
-        ...member,
-        profiles: profiles?.find(p => p.user_id === member.user_id)
-      }));
+      if (error) throw error;
+      
+      // The function returns a single JSON object with all the details
+      return data;
+    } catch (error: any) {
+      console.error('Error getting trip by code:', error);
+      toast({
+        title: "Error",
+        description: "Could not retrieve trip details. You may not be a member of this trip.",
+        variant: "destructive",
+      });
+      throw error;
+    } finally {
+      setLoading(false);
     }
+  };
+  // --- CORRECTED FUNCTION END ---
 
-    return trip;
-  } catch (error: any) {
-    console.error('Error fetching trip:', error);
-    throw error;
-  }
-};
   const joinTrip = async (tripCode: string, userName: string) => {
     if (!user) throw new Error('User must be authenticated');
 
