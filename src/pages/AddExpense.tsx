@@ -30,10 +30,14 @@ const AddExpense = () => {
       
       try {
         const trip = await getTripByCode(tripCode);
-        setTripData({
-          ...trip,
-          members: trip.trip_members
-        });
+        if (trip && typeof trip === 'object') {
+          setTripData({
+            ...trip,
+            members: trip.trip_members || []
+          });
+        } else {
+          throw new Error('Invalid trip data received');
+        }
         
         // Set current user as default payer
         setPaidBy(user.id);

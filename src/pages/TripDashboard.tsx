@@ -44,12 +44,14 @@ const TripDashboard = () => {
         // --- FIX: Check for passed state first to avoid the race condition ---
         if (location.state?.tripData) {
           const passedTrip = location.state.tripData;
-          setTripData({
-            ...passedTrip,
-            members: passedTrip.trip_members
-          });
-          if (passedTrip.expenses) {
-            calculateMemberSummary(passedTrip.expenses, passedTrip.trip_members || []);
+          if (passedTrip && typeof passedTrip === 'object') {
+            setTripData({
+              ...passedTrip,
+              members: passedTrip.trip_members || []
+            });
+            if (passedTrip.expenses) {
+              calculateMemberSummary(passedTrip.expenses, passedTrip.trip_members || []);
+            }
           }
         } else {
           // If no state is passed, fetch from the database
@@ -57,12 +59,16 @@ const TripDashboard = () => {
             await joinTrip(tripCode, userName);
           }
           const trip = await getTripByCode(tripCode);
-          setTripData({
-            ...trip,
-            members: trip.trip_members
-          });
-          if (trip.expenses) {
-            calculateMemberSummary(trip.expenses, trip.trip_members || []);
+          if (trip && typeof trip === 'object') {
+            setTripData({
+              ...trip,
+              members: trip.trip_members || []
+            });
+            if (trip.expenses) {
+              calculateMemberSummary(trip.expenses, trip.trip_members || []);
+            }
+          } else {
+            throw new Error('Invalid trip data received');
           }
         }
       } catch (error: any) {

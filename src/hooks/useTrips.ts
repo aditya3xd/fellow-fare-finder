@@ -107,16 +107,16 @@ export function useTrips() {
     }
   };
 
-  const getTripByCode = async (code: string) => {
+  const getTripByCode = async (code: string): Promise<TripData | null> => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.rpc('get_trip_details', {
+      const { data, error } = await (supabase as any).rpc('get_trip_details', {
         trip_code_input: code
       });
 
       if (error) throw error;
       
-      return data;
+      return data as TripData | null;
     } catch (error: any) {
       console.error('Error getting trip by code:', error);
       toast({
