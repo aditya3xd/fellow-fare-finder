@@ -13,7 +13,7 @@ export interface TripData {
   created_at: string;
   expenses?: ExpenseData[];
   members?: MemberData[];
-  trip_members?: any; // To handle the raw data from the DB function
+  trip_members?: any; // To handle raw data
 }
 
 export interface ExpenseData {
@@ -53,15 +53,14 @@ export function useTrips() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
 
+  // --- FIX 1: createTrip now returns the full trip object with the host as a member ---
   const createTrip = async (tripData: { name: string; yourName: string }) => {
     if (!user) throw new Error('User must be authenticated');
 
     setLoading(true);
     try {
-      // Generate unique trip code
       const code = Math.random().toString(36).substring(2, 8).toUpperCase();
 
-      // Create trip
       const { data: trip, error: tripError } = await supabase
         .from('trips')
         .insert({
@@ -76,20 +75,6 @@ export function useTrips() {
 
       if (tripError) throw tripError;
 
-      // --- FIX 1: Add host as the first member ---
-      // This is the critical step we added.
-      const { error: memberError } = await supabase
-        .from('trip_members')
-        .insert({
-          trip_id: trip.id,
-          user_id: user.id,
-          status: 'approved' // The host is automatically approved
-        });
-
-      if (memberError) throw memberError;
-      // --- END OF FIX 1 ---
-
-      // Update user profile with name
       await supabase
         .from('profiles')
         .upsert({
@@ -97,7 +82,20 @@ export function useTrips() {
           display_name: tripData.yourName
         });
 
-      return trip;
+      const { data: member, error: memberError } = await supabase
+        .from('trip_members')
+        .insert({
+          trip_id: trip.id,
+          user_id: user.id,
+          status: 'approved'
+        })
+        .select(`*, profiles(display_name)`)
+        .single();
+        
+      if (memberError) throw memberError;
+
+      return { ...trip, trip_members: [member] };
+
     } catch (error: any) {
       toast({
         title: 'Error creating trip',
@@ -110,8 +108,7 @@ export function useTrips() {
     }
   };
 
-  // --- FIX 2: Replaced the entire function to use RPC ---
-  // This new version calls the secure database function.
+  // --- FIX 2: getTripByCode now uses the secure RPC function ---
   const getTripByCode = async (code: string) => {
     setLoading(true);
     try {
@@ -134,14 +131,12 @@ export function useTrips() {
       setLoading(false);
     }
   };
-  // --- END OF FIX 2 ---
 
   const joinTrip = async (tripCode: string, userName: string) => {
     if (!user) throw new Error('User must be authenticated');
 
     setLoading(true);
     try {
-      // Find trip by code
       const { data: trip, error: tripError } = await supabase
         .from('trips')
         .select('id, host_id')
@@ -151,7 +146,6 @@ export function useTrips() {
       if (tripError) throw tripError;
       if (!trip) throw new Error('Trip not found');
 
-      // Update user profile with name
       await supabase
         .from('profiles')
         .upsert({
@@ -159,95 +153,5 @@ export function useTrips() {
           display_name: userName
         });
 
-      // Check if user is the host
       if (trip.host_id === user.id) {
-        return trip;
-      }
-
-      // Request to join trip
-      const { error: memberError } = await supabase
-        .from('trip_members')
-        .insert({
-          trip_id: trip.id,
-          user_id: user.id
-        });
-
-      if (memberError && memberError.code !== '23505') { // Ignore duplicate key error
-        throw memberError;
-      }
-
-      return trip;
-    } catch (error: any) {
-      toast({
-        title: 'Error joining trip',
-        description: error.message,
-        variant: 'destructive'
-      });
-      throw error;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const addExpense = async (expenseData: {
-    name: string;
-    amount: number;
-    paidBy: string;
-    splitAmong: string[];
-    tripId: string;
-  }) => {
-    if (!user) throw new Error('User must be authenticated');
-
-    setLoading(true);
-    try {
-      // Create expense
-      const { data: expense, error: expenseError } = await supabase
-        .from('expenses')
-        .insert({
-          name: expenseData.name,
-          amount: expenseData.amount,
-          currency: 'USD',
-          paid_by: expenseData.paidBy,
-          trip_id: expenseData.tripId,
-          created_by: user.id
-        })
-        .select()
-        .single();
-
-      if (expenseError) throw expenseError;
-
-      // Create expense splits
-      const splitAmount = expenseData.amount / expenseData.splitAmong.length;
-      const splits = expenseData.splitAmong.map(userId => ({
-        expense_id: expense.id,
-        user_id: userId,
-        amount: splitAmount
-      }));
-
-      const { error: splitsError } = await supabase
-        .from('expense_splits')
-        .insert(splits);
-
-      if (splitsError) throw splitsError;
-
-      return expense;
-    } catch (error: any) {
-      toast({
-        title: 'Error adding expense',
-        description: error.message,
-        variant: 'destructive'
-      });
-      throw error;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return {
-    createTrip,
-    getTripByCode,
-    joinTrip,
-    addExpense,
-    loading
-  };
-}
+        return trip
