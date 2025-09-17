@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Users, Plus, LogIn, Plane } from "lucide-react";
+import { Users, Plus, LogIn, Plane, LogOut } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/components/auth/AuthProvider";
 
@@ -15,14 +15,14 @@ const Welcome = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { user, signInAnonymously, loading: authLoading } = useAuth();
+  const { user, signOut, loading: authLoading } = useAuth();
 
-  // Auto sign in anonymously when component mounts
+  // Redirect to auth if not authenticated
   useEffect(() => {
-    if (!user && !authLoading) {
-      signInAnonymously().catch(console.error);
+    if (!authLoading && !user) {
+      navigate("/auth");
     }
-  }, [user, authLoading, signInAnonymously]);
+  }, [user, authLoading, navigate]);
 
   const handleCreateTrip = () => {
     navigate("/create-trip");
@@ -50,16 +50,58 @@ const Welcome = () => {
     navigate(`/trip/${joinCode}?userName=${encodeURIComponent(userName)}`);
   };
 
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      navigate("/auth");
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to sign out.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Show loading while checking auth
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-surface flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Don't render if not authenticated (will redirect)
+  if (!user) {
+    return null;
+  }
+
   return (
     <div className="min-h-screen bg-gradient-surface flex flex-col items-center justify-center p-4">
       <div className="w-full max-w-md space-y-6">
         {/* App Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-primary rounded-full mb-4 shadow-medium">
-            <Plane className="w-8 h-8 text-primary-foreground" />
+          <div className="flex items-center justify-between mb-4">
+            <div></div>
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-primary rounded-full shadow-medium">
+              <Plane className="w-8 h-8 text-primary-foreground" />
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleSignOut}
+              className="flex items-center gap-2"
+            >
+              <LogOut className="w-4 h-4" />
+              Sign Out
+            </Button>
           </div>
           <h1 className="text-3xl font-bold text-foreground mb-2">TripMate</h1>
-          <p className="text-muted-foreground">Split expenses fairly with friends</p>
+          <p className="text-muted-foreground">Welcome back! Split expenses fairly with friends</p>
         </div>
 
         {/* Main Actions */}

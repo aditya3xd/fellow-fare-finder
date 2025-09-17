@@ -4,7 +4,9 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/components/auth/AuthProvider";
+import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import Index from "./pages/Index";
+import Auth from "./pages/Auth";
 import CreateTrip from "./pages/CreateTrip";
 import TripDashboard from "./pages/TripDashboard";
 import AddExpense from "./pages/AddExpense";
@@ -21,11 +23,12 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/create-trip" element={<CreateTrip />} />
-            <Route path="/trip/:tripCode" element={<TripDashboard />} />
-            <Route path="/trip/:tripCode/add-expense" element={<AddExpense />} />
-            <Route path="/trip/:tripCode/finalize" element={<Finalize />} />
+            <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+            <Route path="/auth" element={<Auth />} />
+            <Route path="/create-trip" element={<ProtectedRoute><CreateTrip /></ProtectedRoute>} />
+            <Route path="/trip/:tripCode" element={<ProtectedRoute><TripDashboard /></ProtectedRoute>} />
+            <Route path="/trip/:tripCode/add-expense" element={<ProtectedRoute><AddExpense /></ProtectedRoute>} />
+            <Route path="/trip/:tripCode/finalize" element={<ProtectedRoute><Finalize /></ProtectedRoute>} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
