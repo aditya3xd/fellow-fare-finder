@@ -13,7 +13,7 @@ export interface TripData {
   created_at: string;
   expenses?: ExpenseData[];
   members?: MemberData[];
-  trip_members?: any; // Add this to handle the raw data from the function
+  trip_members?: any; // To handle the raw data from the DB function
 }
 
 export interface ExpenseData {
@@ -76,6 +76,19 @@ export function useTrips() {
 
       if (tripError) throw tripError;
 
+      // --- FIX 1: Add host as the first member ---
+      // This is the critical step we added.
+      const { error: memberError } = await supabase
+        .from('trip_members')
+        .insert({
+          trip_id: trip.id,
+          user_id: user.id,
+          status: 'approved' // The host is automatically approved
+        });
+
+      if (memberError) throw memberError;
+      // --- END OF FIX 1 ---
+
       // Update user profile with name
       await supabase
         .from('profiles')
@@ -97,7 +110,8 @@ export function useTrips() {
     }
   };
 
-  // --- CORRECTED FUNCTION START ---
+  // --- FIX 2: Replaced the entire function to use RPC ---
+  // This new version calls the secure database function.
   const getTripByCode = async (code: string) => {
     setLoading(true);
     try {
@@ -107,7 +121,6 @@ export function useTrips() {
 
       if (error) throw error;
       
-      // The function returns a single JSON object with all the details
       return data;
     } catch (error: any) {
       console.error('Error getting trip by code:', error);
@@ -121,7 +134,7 @@ export function useTrips() {
       setLoading(false);
     }
   };
-  // --- CORRECTED FUNCTION END ---
+  // --- END OF FIX 2 ---
 
   const joinTrip = async (tripCode: string, userName: string) => {
     if (!user) throw new Error('User must be authenticated');
