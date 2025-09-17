@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ArrowLeft, Copy, Check } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useTrips } from "@/hooks/useTrips";
+import { useTrips, type TripData } from "@/hooks/useTrips"; // Import TripData
 import { useAuth } from "@/components/auth/AuthProvider";
 
 const CreateTrip = () => {
@@ -15,11 +15,15 @@ const CreateTrip = () => {
   const [tripCode, setTripCode] = useState("");
   const [copied, setCopied] = useState(false);
   
+  // --- FIX: Add state to hold the new trip data ---
+  const [newTripData, setNewTripData] = useState<TripData | null>(null);
+  
   const navigate = useNavigate();
   const { toast } = useToast();
   const { createTrip, loading } = useTrips();
   const { user } = useAuth();
 
+  // --- FIX: This function now stores the created trip data ---
   const handleCreateTrip = async () => {
     if (!tripName.trim() || !yourName.trim()) {
       toast({
@@ -46,6 +50,7 @@ const CreateTrip = () => {
       });
 
       setTripCode(trip.code);
+      setNewTripData(trip); // Store the full trip object
       
       toast({
         title: "Trip Created!",
@@ -74,13 +79,13 @@ const CreateTrip = () => {
     }
   };
 
+  // --- FIX: This function now passes the stored data on navigation ---
   const handleStartTrip = () => {
-    navigate(`/trip/${tripCode}`);
+    navigate(`/trip/${tripCode}`, { state: { tripData: newTripData } });
   };
 
   return (
     <div className="min-h-screen bg-gradient-surface">
-      {/* Header */}
       <div className="bg-card border-b border-border p-4">
         <div className="flex items-center max-w-md mx-auto">
           <Button 
@@ -165,20 +170,6 @@ const CreateTrip = () => {
             )}
           </CardContent>
         </Card>
-
-        {tripCode && (
-          <Card className="shadow-medium border-0 bg-card mt-4">
-            <CardContent className="pt-6">
-              <h3 className="font-semibold text-foreground mb-2">What's next?</h3>
-              <ul className="text-sm text-muted-foreground space-y-1">
-                <li>• Share the trip code with your friends</li>
-                <li>• They can join using the code on the home page</li>
-                <li>• Start adding expenses as you spend together</li>
-                <li>• Settle up fairly at the end of your trip</li>
-              </ul>
-            </CardContent>
-          </Card>
-        )}
       </div>
     </div>
   );
