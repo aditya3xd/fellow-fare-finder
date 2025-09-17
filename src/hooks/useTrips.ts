@@ -53,7 +53,6 @@ export function useTrips() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
 
-  // --- FIX 1: createTrip now returns the full trip object with the host as a member ---
   const createTrip = async (tripData: { name: string; yourName: string }) => {
     if (!user) throw new Error('User must be authenticated');
 
@@ -108,7 +107,6 @@ export function useTrips() {
     }
   };
 
-  // --- FIX 2: getTripByCode now uses the secure RPC function ---
   const getTripByCode = async (code: string) => {
     setLoading(true);
     try {
@@ -154,4 +152,90 @@ export function useTrips() {
         });
 
       if (trip.host_id === user.id) {
-        return trip
+        return trip;
+      }
+
+      const { error: memberError } = await supabase
+        .from('trip_members')
+        .insert({
+          trip_id: trip.id,
+          user_id: user.id
+        });
+
+      if (memberError && memberError.code !== '23505') {
+        throw memberError;
+      }
+
+      return trip;
+    } catch (error: any) {
+      toast({
+        title: 'Error joining trip',
+        description: error.message,
+        variant: 'destructive'
+      });
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const addExpense = async (expenseData: {
+    name: string;
+    amount: number;
+    paidBy: string;
+    splitAmong: string[];
+    tripId: string;
+  }) => {
+    if (!user) throw new Error('User must be authenticated');
+
+    setLoading(true);
+    try {
+      const { data: expense, error: expenseError } = await supabase
+        .from('expenses')
+        .insert({
+          name: expenseData.name,
+          amount: expenseData.amount,
+          currency: 'USD',
+          paid_by: expenseData.paidBy,
+          trip_id: expenseData.tripId,
+          created_by: user.id
+        })
+        .select()
+        .single();
+
+      if (expenseError) throw expenseError;
+
+      const splitAmount = expenseData.amount / expenseData.splitAmong.length;
+      const splits = expenseData.splitAmong.map(userId => ({
+        expense_id: expense.id,
+        user_id: userId,
+        amount: splitAmount
+      }));
+
+      const { error: splitsError } = await supabase
+        .from('expense_splits')
+        .insert(splits);
+
+      if (splitsError) throw splitsError;
+
+      return expense;
+    } catch (error: any) {
+      toast({
+        title: 'Error adding expense',
+        description: error.message,
+        variant: 'destructive'
+      });
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return {
+    createTrip,
+    getTripByCode,
+    joinTrip,
+    addExpense,
+    loading
+  };
+} // <-- This is the closing brace that was likely missing.
