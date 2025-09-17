@@ -96,44 +96,44 @@ export function useTrips() {
     }
   };
 
-  const getTripByCode = async (code: string) => {
-    try {
-      const { data: trip, error } = await supabase
-        .from('trips')
-        .select(`
-          *,
-          expenses(*, expense_splits(*)),
-          trip_members(
-            id, user_id, trip_id, status, requested_at, approved_at
-          )
-        `)
-        .eq('code', code)
-        .single();
+  // This is the function you need to replace (lines 94-126)
+const getTripByCode = async (code: string) => {
+  try {
+    const { data: trip, error } = await supabase
+      .from('trips')
+      .select(`
+        *,
+        expenses(*, expense_splits(*)),
+        trip_members(
+          id, user_id, trip_id, status, requested_at, approved_at
+        )
+      `)
+      .eq('code', code)
+      .single();
 
-      if (error) throw error;
+    if (error) throw error;
 
-      // Fetch member profiles separately
-      if (trip?.trip_members) {
-        const memberIds = trip.trip_members.map((m: any) => m.user_id);
-        const { data: profiles } = await supabase
-          .from('profiles')
-          .select('user_id, display_name, avatar_url')
-          .in('user_id', memberIds);
+    // Fetch member profiles separately
+    if (trip?.trip_members) {
+      const memberIds = trip.trip_members.map((m: any) => m.user_id);
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('user_id, display_name, avatar_url')
+        .in('user_id', memberIds);
 
-        // Merge profiles with members
-        trip.trip_members = trip.trip_members.map((member: any) => ({
-          ...member,
-          profiles: profiles?.find(p => p.user_id === member.user_id)
-        }));
-      }
-
-      return trip;
-    } catch (error: any) {
-      console.error('Error fetching trip:', error);
-      throw error;
+      // Merge profiles with members
+      trip.trip_members = trip.trip_members.map((member: any) => ({
+        ...member,
+        profiles: profiles?.find(p => p.user_id === member.user_id)
+      }));
     }
-  };
 
+    return trip;
+  } catch (error: any) {
+    console.error('Error fetching trip:', error);
+    throw error;
+  }
+};
   const joinTrip = async (tripCode: string, userName: string) => {
     if (!user) throw new Error('User must be authenticated');
 
